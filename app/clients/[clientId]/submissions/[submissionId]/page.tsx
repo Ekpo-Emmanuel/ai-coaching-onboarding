@@ -11,7 +11,7 @@ import { MarkReviewedButton } from "./MarkReviewedButton";
 import { CoachBriefPanel } from "./CoachBriefPanel";
 import { fieldLabelMap } from "@/lib/intelligence/payload";
 import { submissionSnapshot } from "@/lib/review/snapshot";
-import { reviewStatusLabel } from "@/lib/review/status";
+import { PageHeader, StatusBadge } from "@/components/product/ui";
 import type { OnboardingAnswers } from "@/lib/onboarding/schema/types";
 
 export const dynamic = "force-dynamic";
@@ -33,32 +33,14 @@ export default async function SubmissionDetailPage({
   return (
     <AppShell businessName={profile.businessName}>
       <main className="submission-page">
-        <Link href={`/clients/${loaded.client.id}`} className="text-sm text-muted">
-          Back to {loaded.client.fullName}
+        <Link href={`/clients/${loaded.client.id}`} className="page-back">
+          ← Back to {loaded.client.fullName}
         </Link>
-        <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="font-mono text-xs tracking-[0.22em] text-muted uppercase">Client</p>
-            <h1 className="font-display text-4xl tracking-tight">{loaded.client.fullName}</h1>
-            <p className="mt-2 text-muted">
-              {loaded.form.name} · Version {loaded.version.versionNumber} · {loaded.submission.submittedAt.toLocaleString()}
-            </p>
-            <p className="mt-2 text-sm">
-              {loaded.submission.reviewStatus === "needs_review" ? (
-                <span className="rounded-full bg-warn/15 px-3 py-1 text-warn">Needs Review</span>
-              ) : (
-                reviewStatusLabel(loaded.submission.reviewStatus)
-              )}
-            </p>
-          </div>
-          {loaded.submission.reviewStatus !== "reviewed" ? (
-            <MarkReviewedButton submissionId={loaded.submission.id} />
-          ) : null}
-        </div>
+        <PageHeader eyebrow="Client onboarding" title={loaded.client.fullName} description={`${loaded.form.name} · Version ${loaded.version.versionNumber} · ${loaded.submission.submittedAt.toLocaleString()}`} action={<><StatusBadge status={loaded.submission.reviewStatus} />{loaded.submission.reviewStatus !== "reviewed" ? <MarkReviewedButton submissionId={loaded.submission.id} /> : null}</>} />
         {snapshot.length ? (
-          <section className="mt-10 grid gap-3 sm:grid-cols-2">
+          <section className="submission-snapshot">
             {snapshot.map((item) => (
-              <article key={item.fieldKey} className="rounded-2xl border border-line bg-surface p-4">
+              <article key={item.fieldKey}>
                 <p className="text-sm text-muted">{item.title}</p>
                 <p className="mt-1 font-display text-xl tracking-tight">{item.value}</p>
               </article>
@@ -83,16 +65,15 @@ export default async function SubmissionDetailPage({
             )}
           </div>
         </section>
-        <aside className="submission-context"><section id="review-flags" className="review-flags">
+        <aside className="submission-context"><section id="review-flags" className="review-flags" data-empty={!loaded.flags.length}>
           <p className="eyebrow">02 · Rule-based Review Flags</p>
-          <h2 className="mt-2 font-display text-3xl tracking-tight">Coach review needed</h2>
+          <h2 className="mt-2 font-display text-3xl tracking-tight">{loaded.flags.length ? "Coach review needed" : "No rule-based flags"}</h2>
           {loaded.flags.length === 0 ? (
             <p className="mt-3 text-muted">No Review Flags were triggered. Continue reviewing the original answers.</p>
           ) : (
             <ul className="mt-4 space-y-4">
               {loaded.flags.map((flag) => (
-                <li key={flag.id} className="rounded-2xl border border-line bg-surface p-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-muted">Review flag</p>
+                <li key={flag.id} className="review-flag-item">
                   <p className="mt-1 font-display text-xl tracking-tight">{flag.label}</p>
                   <p className="mt-2 text-sm text-muted">Based on:</p>
                   <ul className="text-sm text-muted">
