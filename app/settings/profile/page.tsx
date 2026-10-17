@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { PageHeader } from "@/components/product/ui";
 import { AppShell } from "@/components/product/AppShell";
 import { CoachingProfileForm } from "@/components/product/CoachingProfileForm";
 import { requireWorkspace } from "@/lib/workspace/session";
@@ -10,10 +12,9 @@ export default async function SettingsProfilePage() {
   return (
     <AppShell businessName={profile.businessName}>
       <main className="mx-auto w-full max-w-7xl px-4 py-10">
-        <p className="font-mono text-xs tracking-[0.22em] text-muted uppercase">Settings</p>
-        <h1 className="mt-3 font-display text-4xl tracking-tight">Coaching profile</h1>
-        <p className="mt-3 max-w-[50ch] text-muted">Give your Agent context about who you coach and how you work. Published forms stay unchanged.</p>
-        <div className="mt-10">
+        <Link className="page-back" href="/settings">← Settings</Link>
+        <PageHeader title="Coaching profile" description="Give your Agent context about who you coach and how you work. Published forms stay unchanged." />
+        <div>
           <CoachingProfileForm
             mode="edit"
             initial={{
