@@ -7,14 +7,19 @@ import { DraftConflictError, FormServiceError } from "@/lib/forms/errors";
 import {
   archiveForm,
   createForm,
+  deleteForm,
+  duplicateForm,
   getPublishedFormBySlug,
   getWorkspaceDraft,
   getWorkspaceForm,
+  listForms,
   publishForm,
+  renameForm,
+  restoreForm,
   updateDraft,
 } from "@/lib/forms/service";
+import { form, formVersion } from "@/lib/db/schema";
 import { emmanuelOnboardingV1 } from "@/lib/onboarding/schemas/emmanuel-onboarding-v1";
-import { formVersion } from "@/lib/db/schema";
 
 describe("form service", () => {
   let db: TestDb;
@@ -123,6 +128,64 @@ describe("form service", () => {
     await publishForm(db, { workspaceId: owner.workspaceId, formId: created.form.id, userId: owner.userId });
     await archiveForm(db, owner.workspaceId, created.form.id);
     expect(await getPublishedFormBySlug(db, created.form.slug)).toBeNull();
+  });
+
+  it("renames without changing the public slug", async () => {
+    const owner = await seedWorkspace(db, "a");
+    const created = await createForm(db, { workspaceId: owner.workspaceId, name: "Intake", source: "blank" });
+    const renamed = await renameForm(db, owner.workspaceId, created.form.id, "Welcome intake");
+    expect(renamed.slug).toBe(created.form.slug);
+    expect(renamed.name).toBe("Welcome intake");
+  });
+
+  it("duplicates the draft only", async () => {
+    const owner = await seedWorkspace(db, "a");
+    const created = await createForm(db, { workspaceId: owner.workspaceId, name: "Intake", source: "blank" });
+    await publishForm(db, { workspaceId: owner.workspaceId, formId: created.form.id, userId: owner.userId });
+    const copy = await duplicateForm(db, owner.workspaceId, created.form.id);
+    expect(copy.form.name).toBe("Intake copy");
+    expect(copy.form.slug).not.toBe(created.form.slug);
+    expect(copy.form.status).toBe("draft");
+    expect(copy.draft.schema.storageKey).toBe(`form_${copy.form.id}`);
+    const versions = await db.select().from(formVersion).where(eq(formVersion.formId, copy.form.id));
+    expect(versions).toHaveLength(0);
+  });
+
+  it("refuses to delete published history and restores an archive", async () => {
+    const owner = await seedWorkspace(db, "a");
+    const created = await createForm(db, { workspaceId: owner.workspaceId, name: "Live", source: "blank" });
+    await publishForm(db, { workspaceId: owner.workspaceId, formId: created.form.id, userId: owner.userId });
+    await expect(deleteForm(db, owner.workspaceId, created.form.id)).rejects.toBeInstanceOf(FormServiceError);
+    await archiveForm(db, owner.workspaceId, created.form.id);
+    expect(await getPublishedFormBySlug(db, created.form.slug)).toBeNull();
+    await restoreForm(db, owner.workspaceId, created.form.id);
+    expect(await getPublishedFormBySlug(db, created.form.slug)).not.toBeNull();
+    const listed = await listForms(db, owner.workspaceId);
+    expect(listed[0]?.publication).toBe("live");
+  });
+
+  it("marks unpublished draft changes on a live form", async () => {
+    const owner = await seedWorkspace(db, "a");
+    const created = await createForm(db, { workspaceId: owner.workspaceId, name: "Live", source: "blank" });
+    await publishForm(db, { workspaceId: owner.workspaceId, formId: created.form.id, userId: owner.userId });
+    await updateDraft(db, {
+      workspaceId: owner.workspaceId,
+      formId: created.form.id,
+      expectedRevision: 1,
+      schema: { ...created.draft.schema, title: "Edited" },
+    });
+    const listed = await listForms(db, owner.workspaceId);
+    expect(listed[0]?.publication).toBe("changes");
+    expect(listed[0]?.canDelete).toBe(false);
+    expect(await listForms(db, owner.workspaceId, "archived")).toHaveLength(0);
+  });
+
+  it("deletes an unused draft", async () => {
+    const owner = await seedWorkspace(db, "a");
+    const created = await createForm(db, { workspaceId: owner.workspaceId, name: "Scratch", source: "blank" });
+    await deleteForm(db, owner.workspaceId, created.form.id);
+    const rows = await db.select().from(form).where(eq(form.id, created.form.id));
+    expect(rows).toHaveLength(0);
   });
 
   it("keeps slugs unique", async () => {
