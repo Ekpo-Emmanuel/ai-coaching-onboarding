@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { createFormAction } from "@/lib/forms/actions";
 
 export function NewFormForm() {
@@ -11,10 +11,15 @@ export function NewFormForm() {
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
 
+  const lock = useRef(false);
+
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
+    if (lock.current) return;
+    lock.current = true;
     setPending(true);
     setError("");
+    try {
     const result = await createFormAction({ name, source: source === "v1" ? "v1" : "blank" });
     setPending(false);
     if ("formId" in result && result.formId) {
@@ -22,10 +27,12 @@ export function NewFormForm() {
       return;
     }
     setError("error" in result ? result.error : "Could not create the onboarding.");
+    } catch { setError("Could not create your onboarding. Your choices are still here. Try again."); }
+    finally { lock.current = false; setPending(false); }
   }
 
   return (
-    <form onSubmit={onSubmit} className="mt-8 max-w-xl space-y-6">
+    <form onSubmit={onSubmit} className="max-w-xl space-y-6">
       <label className="block">
         <span className="font-display text-sm tracking-tight">Form name</span>
         <input
