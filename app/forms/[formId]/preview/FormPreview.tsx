@@ -7,28 +7,20 @@ import type { OnboardingSchema } from "@/lib/onboarding/schema/types";
 export function FormPreview({
   schema,
   branding,
+  compact = false,
 }: {
   schema: OnboardingSchema;
   branding: { businessName: string; coachName: string; primaryColor: string | null };
+  compact?: boolean;
 }) {
   const [viewport, setViewport] = useState<"mobile" | "desktop">("mobile");
   return (
-    <div className="form-preview">
-      <div className="preview-toolbar">
-        <button
-          type="button"
-          className={`rounded-full px-4 py-2 ${viewport === "mobile" ? "bg-accent text-surface" : "border border-line"}`}
-          aria-pressed={viewport === "mobile"}
-          onClick={() => setViewport("mobile")}
-        >
+    <div className={`form-preview${compact ? " form-preview--workspace" : ""}`} data-viewport={viewport}>
+      <div className="preview-toolbar" role="group" aria-label="Preview viewport">
+        <button type="button" aria-pressed={viewport === "mobile"} onClick={() => setViewport("mobile")}>
           Mobile
         </button>
-        <button
-          type="button"
-          className={`rounded-full px-4 py-2 ${viewport === "desktop" ? "bg-accent text-surface" : "border border-line"}`}
-          aria-pressed={viewport === "desktop"}
-          onClick={() => setViewport("desktop")}
-        >
+        <button type="button" aria-pressed={viewport === "desktop"} onClick={() => setViewport("desktop")}>
           Desktop
         </button>
       </div>
