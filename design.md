@@ -1,6 +1,6 @@
 # Coaching — Canonical Design Specification
 
-Version: 1.1 · September 2026 · Light appearance
+Version: 1.9 · September 2026 · Light appearance
 
 This document describes the redesigned Coaching interface implemented in this repository. It is the visual source of truth for new screens, prototypes, and production components. It is framework-agnostic: token names describe intent, not generated CSS classes. The shared implementation lives in `app/globals.css`, `app/design-system.css`, and the reusable product components. The local `/dev/design` gallery uses the same components with explicitly labeled sample data and is unavailable in production.
 
@@ -142,6 +142,7 @@ shadow.none                      = none
 shadow.selectedTab               = 0 1px 3px #243B320D
 shadow.marketingPreview          = 0 24px 60px #243B320E
 shadow.modal                     = 0 20px 60px #243B3226
+shadow.account                   = 0 8px 24px #243B3214
 
 size.control.minimum             = 44px
 size.control.public              = 48px
@@ -155,11 +156,14 @@ breakpoint.public.mediumContainer = 680px
 breakpoint.public.railContainer   = 1000px
 size.icon.navigation             = 21px
 size.icon.action                 = 18px
-size.sidebar                     = 232px
-size.sidebarCompact              = 192px
-size.topbar                      = 72px
-size.topbarMobile                = 60px
-size.mobileNavItem               = 54px
+size.sidebar                     = 216px
+size.sidebarCompact              = 88px
+size.topbar                      = 0px
+size.topbarMobile                = 56px
+size.mobileNavItem               = 44px
+size.modal.close                 = 44px
+size.builder.phoneIdentity       = 44px
+size.builder.phoneMode           = 44px
 width.content.application        = 1280px
 width.content.marketing          = 1440px
 width.content.marketingSection   = 1312px
@@ -176,11 +180,13 @@ width.builder.inspector          = 740px
 width.builder.proposalPreview    = 1160px
 size.control.builder             = 46px
 size.builder.mode               = 52px
-size.builder.questionRow         = 76px
+size.builder.questionRow         = 68px
 size.builder.composerMin         = 56px
 size.builder.composerFieldMax    = 120px
 size.builder.composerSend        = 44px
-radius.builder.composerDock    = 16px
+radius.builder.composerSend     = 14px
+radius.builder.composerDock    = 20px
+color.background.composer        = #243B32
 radius.builder.section          = 12px
 radius.builder.proposal         = 10px
 color.background.agentMessage   = #E1E9DC
@@ -191,7 +197,8 @@ breakpoint.mobile                = 0–767px
 breakpoint.tablet                = 768–1199px
 breakpoint.desktop               = 1200–1799px
 breakpoint.builder.controls      = 680px
-breakpoint.builder.split         = 1100px
+breakpoint.builder.modes         = 900px
+breakpoint.builder.split         = 1200px
 breakpoint.builder.wide          = 1500px
 breakpoint.previewContainer      = 700px
 layer.content                    = 0
@@ -220,7 +227,7 @@ Eyebrows are 11px/1.5, weight 600, uppercase, 1.5px tracking, secondary text. Th
 
 ## Spacing, surfaces, borders, and elevation
 
-Use the 4px spacing scale. Standard desktop page padding is 44px top, 40px sides, 72px bottom. Tablet sides are 28px. Mobile padding is 28px top, 20px sides, and 36px bottom, in addition to navigation clearance. A page header is followed by 36px desktop / 28px mobile space.
+Use the 4px spacing scale. Standard desktop page padding is 44px top, 40px sides, 72px bottom. Tablet sides are 28px. Mobile padding is 28px top, 20px sides, and 36px bottom. Mobile has one sticky header; tablet and desktop have only a rail. Page padding does not reserve a bottom bar. A page header is followed by 36px desktop / 28px mobile space.
 
 Use 24–32px gaps between major regions, 16–24px between fields, 8px between label and input, and 4–8px between related metadata. Working panels have 24–28px internal padding; mobile uses 20–24px. Dense rows have 21px vertical / 24px horizontal padding; mobile 18px / 16px.
 
@@ -238,11 +245,23 @@ Lists are one shared white surface with separators, not individually floating ca
 
 ## Navigation and page headers
 
-Desktop navigation is a fixed 232px sage sidebar. Order: Dashboard, Forms, Clients, Connections, Settings. Each item combines a 21px Phosphor icon and a label. Active navigation uses a pale-green filled rectangle, stronger green text, medium/semibold weight, and `aria-current="page"`. The business/workspace identity sits above navigation. A coaching profile shortcut and sign out sit at the bottom. Connections is a primary destination even though its URL is under settings.
+The authenticated shell has one navigation system. Routes and page content remain unchanged. Do not add a desktop top bar: the page already supplies its title and contextual actions, and the rail supplies navigation and account access. There is no global slogan, repeated page title, duplicated account trigger, or unsupported search/notification control.
 
-The 72px topbar shows the current area, a quiet product note, and a workspace initial linking to the coaching profile. Do not introduce global search, notifications, team switchers, or billing controls without real product support.
+**Mobile, 320–767px:** use a sticky 56px paper header plus the top safe area, 16px side gutters, an 18px Coaching wordmark with 18px mark at left, and a 44px hamburger (List) control at right. That control opens navigation; its accessible name includes the workspace. Keep workspace identity and email inside the opened menu rather than squeezing them into the header. Do not add a separate avatar or persistent bottom bar.
 
-On mobile, replace the sidebar with a fixed bottom navigation containing all five destinations, icon above label. Each item is at least 54px high. Add bottom safe-area padding. Reserve at least 74px plus safe area in page content. The topbar becomes 60px. Public onboarding and authentication never show this workspace navigation.
+The mobile menu is a full-height paper drawer that covers 70% of the viewport width and slides in from the right. Use 20px side gutters, the smaller wordmark and a 44px icon Close navigation control, then five 44px destination rows: Dashboard, Forms, Clients, Connections, Settings. Pair regular 20px icons with 16px labels; add 8px before Settings. The current route has a 2px forest leading rule, medium forest text, and a small Current label. No filled active pill. Below one divider, show a 32px workspace initial, wrapping business name and session email when available, then Coaching profile and quiet Sign out on one wrapping action row. No invented account information or workspace switching.
+
+The drawer uses dialog semantics: background content is dimmed, body scrolling locks, Tab stays inside, Escape and the visible Close control dismiss, backdrop clicks dismiss, and focus returns to the opener. Choosing a destination closes the drawer. Height is 100dvh; scroll within the drawer on short screens; retain safe-area padding. At 768px, close an open mobile menu and release the scroll lock. Slide and fade over 300ms; honor reduced motion.
+
+**Tablet and small laptop, 768–1199px:** replace the header with a fixed 88px sage rail. Show only the brand mark at the top. Each destination uses its regular 21px icon above a persistent 11px label in a 60px target; labels remain visible rather than relying on tooltips. Retain the five destinations and active leading rule. Separate Settings with 12px extra space. A compact initial plus Account label sits at the bottom. The page gains the space saved by a full sidebar and does not gain another top bar.
+
+**Desktop, 1200px and wider:** expand the rail to 216px with 12px horizontal padding. Brand becomes a 25px wordmark; navigation begins after a 20px gap. Rows become horizontal icon-and-label pairs, 44px high, with 14px labels and 12px internal gaps. Active state is forest text, semibold weight and a 2px leading rule, with no permanent filled rectangle. Hover uses #E4EAE0 and pressed uses #DCE7D8. A 2px forest outline with 2px offset shows keyboard focus. The rail remains 216px on wide desktops and the page keeps its existing 1280px maximum width.
+
+The rail contains only one account control, at its foot: a workspace initial, truncated business name, and Account caption. Full workspace name and signed-in email appear in its menu, followed by Coaching profile and Sign out. At tablet widths the trigger reduces to the initial and Account label. The 280px menu opens above the trigger, has a 12px radius, a fine border, and a restrained `0 8px 24px #243B3214` shadow. Long identity text wraps. Arrow keys, Home/End, Escape, and Tab work; outside clicks close it. On short viewports the navigation list and account menu scroll independently so account access remains reachable. Sign out retains the existing session action, pending state, and retryable error.
+
+Connections remains a main destination despite its /settings/connections route; it never simultaneously activates Settings. Client details and submissions activate Clients; form creation and response lists activate Forms; Coaching profile activates Settings. Public onboarding, authentication, and setup remain outside the authenticated shell.
+
+The Form Builder is a deliberate exception: render no global rail, header, or account controls inside its focused workspace. Its existing Forms exit, form identity, save state, modes, and Publish toolbar remain. Leaving through Forms preserves the existing save-before-exit behavior. Never stack the global header above the builder toolbar.
 
 Page headers contain an optional eyebrow, one H1, one short description, and a right-aligned action group. One filled action is preferred. On mobile the action group moves beneath the title and stretches to available width. Back links sit above the header. Never crowd actions into the title line on small screens.
 
@@ -344,7 +363,7 @@ The final page shows Submit Onboarding (Finish preview in preview mode), without
 
 On network or server failure, preserve answers and say “We couldn’t send your answers. They’re still here. Please try submitting again.” The same submission action becomes available. Server field errors also return the client to the affected question page. Do not expose technical exception text.
 
-On success, replace the form and rail with a centered 600px receipt: 64px sage check circle, quiet “Onboarding sent” eyebrow, schema success title, and concise confirmation that answers reached the coach and the page may be closed. End with a thinly bordered “Submission received” row. No invented response time, booking, messaging, or promised plan. Preview explicitly says no answers were submitted. Success focus moves to the heading.
+On success, replace the form and rail with a centered 600px receipt: 64px sage check circle, quiet “Onboarding sent” eyebrow, schema success title, and concise confirmation that answers reached the coach and the page may be closed. Render the coach-authored success paragraphs below the delivery confirmation; the success copy configured in the builder must appear in the client experience and preview. End with a thinly bordered “Submission received” row. No invented response time, booking, messaging, or promised plan. Preview explicitly says no answers were submitted. Success focus moves to the heading.
 
 ### Accessibility, brand contrast, and motion
 
@@ -359,7 +378,9 @@ Badges are compact rounded rectangles, 5px radius, 11px/500 text, 4px by 9px pad
 | Status | Treatment | Meaning |
 | --- | --- | --- |
 | Draft | Neutral | Editable form not currently published as this draft |
-| Published | Green | A published version is available to clients |
+| Published | Green | A published version is available to clients, and the draft matches it |
+| Unpublished changes | Amber | A live form has a newer draft that is not published yet |
+| Archived | Neutral | Removed from the active list. The public link is off. History stays |
 | New | Blue-gray | A client’s latest submission is new |
 | Needs review | Amber | Latest submission needs the coach’s attention |
 | Reviewed | Green | Coach explicitly marked it reviewed |
@@ -383,15 +404,15 @@ Philosophy: acknowledge, propose, let the coach decide. For a simple edit, the s
 
 ### Mobile Agent
 
-At 320–679px the Agent is a full-screen working mode. Compact the heading once a conversation exists so the thread and composer dominate. Starter prompts sit in the empty state as full-width rows; tapping one sends it. The composer is one ivory dock: auto-growing field plus a 44px send stamp inside the same surface, above the workspace mode tabs. Enter inserts a new line. Command/Control + Enter sends. When the visual viewport shrinks for a keyboard, the workspace height follows so Send stays reachable. Bottom tabs remain reserved; do not hide Apply, Reject, or Send behind the keyboard.
+At 320–679px the Agent is a full-screen working mode. Compact the heading once a conversation exists so the thread and composer dominate. Starter prompts sit in the empty state as full-width rows; tapping one sends it. The composer is one ivory dock: auto-growing field plus a 44px send stamp inside the same surface, at the bottom of the work pane. Enter inserts a new line. Command/Control + Enter sends. When the visual viewport shrinks for a keyboard, the workspace height follows so Send stays reachable. Workspace modes remain in the top toolbar. Do not hide Apply, Reject, or Send behind the keyboard.
 
 ### Desktop Agent
 
-From 1100px the Agent is a 380px (420px from 1500px) sage column beside Build. Keep density high: compact heading, short replies, ChangeSets as the primary object. Do not use layouts that only work at full page width. The composer stays at the bottom of the column. Auto-focus the composer at 1100px and wider.
+From 1200px the Agent is a 380px (420px from 1500px) sage column beside Build. Keep density high: compact heading, short replies, ChangeSets as the primary object. Do not use layouts that only work at full page width. The composer stays at the bottom of the column. Do not automatically open the phone keyboard.
 
 ### Conversation hierarchy
 
-Coach requests are labeled “You” with a forest left rule, not a chat bubble. Agent replies are unlabeled product copy in 14px / 1.65. A pending ChangeSet is a white panel with a 3px forest top rule. Applied and rejected ChangeSets shrink into receipts. Errors sit above the composer in amber and say the form has not changed. Working state is one quiet line: “Working on your form…”.
+Coach requests sit in a forest bubble, right-aligned, paper 14px type, 16px top radius and a 4px bottom-right corner. A muted 11px clock sits above. Agent replies are left-aligned product copy in 14px / 1.65, no bubble. A pending ChangeSet is a white 16px-radius card: numbered badge, Proposed Changes, amber Not applied dot, section heading, then add lines with a forest left rule and + marks. Applied and rejected ChangeSets shrink into receipts. Errors sit above the composer in amber and say the form has not changed. Working state is one quiet line: “Working on your form…”.
 
 Starter prompts disappear after the first message. After an applied ChangeSet that is still the latest turn, show up to three next-action prompts derived from what just changed. Those prompts still go through propose → review → Apply.
 
@@ -413,23 +434,23 @@ The Agent still flushes unsaved draft edits before propose, preview, and Apply. 
 
 ### Philosophy and architecture
 
-The builder is a focused authoring workspace at `/forms/[formId]/build`. Its hierarchy is a compact workspace toolbar, then the current task. It replaces the normal application sidebar, topbar, and mobile bottom navigation. The visible Forms link provides the exit. Do not put a second application navigation bar around this workspace.
+The builder is a focused authoring workspace at `/forms/[formId]/build`. Its hierarchy is a compact workspace toolbar, then the current task. It replaces the normal application rail and mobile header. The visible Forms link provides the exit. Do not put a second application navigation bar around this workspace.
 
 The shell fills the available visual viewport. Use a single toolbar rather than a page hero plus a second mode row. The toolbar is tooling: where I am, which mode I am in, whether the draft is saved, and Publish. Use `100dvh` as the fallback and the visual viewport height when available. Individual work panes scroll; the page must not develop horizontal overflow.
 
-From 680px, the toolbar is one 56px row: Forms exit, truncated form name, a quiet publication chip, a centered Agent / Build / Preview segmented control, save status, and Publish. Truncate only the header name with an ellipsis; editable names and question text remain fully available in their editors. Publication copy stays short: “Draft · Not published”, “Published · Up to date”, or “Published · Unpublished changes”. Do not keep explanatory slogans such as “AI drafts. You decide.” in chrome.
+The header is one 56px row at every width, plus the top safe-area inset. On phones it contains a 44px Forms back arrow, a flexible truncated form name, an unpublished amber status dot immediately after the form name that pulses while the draft differs from the live version, and a split primary Publish control: Publish on the left, a 44px Form tools ellipsis on the right. Agent, Build, and Preview are not a header selector on small screens. Open Agent from the structure dock or Form tools; open Preview from Form tools. The form name uses 14px type on phones and 16px from 680px. The full name is available in Form tools and Form settings.
 
-At 320–679px the builder uses a purpose-built phone chrome, not a stacked desktop toolbar. Keep one 48px top bar: back to Forms (arrow, with accessible name), truncated form name, save status, a Form tools overflow, and Publish. Move Agent / Build / Preview to a fixed bottom tab bar with icon and label. The phone does one mode at a time; do not stack mode tabs under the identity row. Hide Review rules and Form settings from persistent Build chrome; they live in Form tools. Hide the “Your onboarding” toolbar row on the overview. All sections remains a contextual back control only while editing. Publication copy stays available to assistive technology. Omit the Build question count on the tab bar. Below 360px, omit the Publish arrow.
+Publish is a lifecycle action in the header at every width, never a fourth mode. Below 900px, Form tools also lists Agent and Preview, then Review rules and Form settings. Save state remains announced, and the menu exposes full save/publication context. Persistent failures and conflicts remain visible in their banner. From 680px the Forms exit also shows its text label. From 900px Agent / Build / Preview appear as buttons in a sage track with a white selected tile; Form tools drops the Agent and Preview duplicates. Save status is visible from 1200px. Do not display both mode controls at once.
 
-The bottom tab bar stays put while the work pane scrolls. Keep it about 56px plus the safe-area inset. Reserve that height so the Agent composer sits above the tabs, not under them. Do not collapse chrome on scroll.
+Form tools opens a viewport-bounded menu. Focus the first visible, enabled action. Support arrows, Home/End, Escape, normal focus exit, and trigger focus restoration. Selecting a tool opens its focused Build view. The header stays fixed within the workspace; contextual back controls scroll with their task. Do not add a second persistent toolbar or bottom navigation.
 
-From 680px, the segmented mode control sits in a sage track with a white selected tile. Selection has a programmatic pressed state. Build can show the question count.
+The work pane consumes the remaining visual viewport height. Build and Preview each have one active scrolling region. Agent uses one conversation scroll region and a composer in normal flex layout at the bottom of its pane, with safe-area padding. Shrink the workspace to visual viewport height when the keyboard opens; never overlay the composer on conversation content.
 
 ### Mobile and desktop composition
 
-At 320–1099px, Agent, Build, and Preview are separate full-width modes. Agent and Build remain mounted so conversation, draft values, and the selected inspector survive switching. Preview uses the real client renderer and starts a fresh trial when it is reopened. Do not imply that preview answers are saved.
+At 320–899px, Build is the default structure view. Agent stays mounted as the compact ink chat dock at the bottom of the structure list. Empty dock is one short row: placeholder, hint, and send stamp. No grab handle until the coach types. After typing, the handle appears; drag it up at least 48px, tap it, or use CornersOut to open the conversation as a shared bottom Sheet. Dismiss the sheet with Escape, a tap on the faded area, CornersIn, or a downward drag on the sheet handle. Agent and Preview remain full-width modes when opened from Form tools. From 900px the same ink dock sits at the bottom of the Agent column or Agent mode. Preview uses the real client renderer and starts a fresh trial when it is reopened. Do not imply that preview answers are saved.
 
-At 1100–1499px, Agent and Build appear together: a 380px Agent column, a 1px divider, and the flexible editor. At 1500px and wider, the Agent column becomes 420px. Selecting Preview replaces both panes with a full workspace preview. There is no third always-visible preview column, even on very wide monitors. Agent and Build selections retain the same two-pane composition on desktop.
+At 1200–1499px, Agent and Build appear together: a 380px Agent column, a 1px divider, and the flexible editor. At 1500px and wider, the Agent column becomes 420px. Selecting Preview replaces both panes with a full workspace preview. There is no third always-visible preview column, even on very wide monitors. Agent and Build selections retain the same two-pane composition on desktop.
 
 Use 20px horizontal content padding on mobile, 16px below 360px, and 32px in the editor from 680px. The overview is at most 860px wide; the inspector is at most 740px. Agent padding is 20px mobile and 24px in the split layout. Two-column control groups begin at 680px; narrow screens stack labels and controls. Never reduce input text below 16px to make a panel fit.
 
@@ -439,7 +460,7 @@ The Agent has a pale sage surface, a compact brand motif, a contextual heading, 
 
 Coach lines use a “You” label and a forest rule. Agent replies stay short. Pending ChangeSets are the visual focus. Applied and rejected ChangeSets collapse to receipts. Body text is 14px.
 
-The composer is a single paper dock, not a textarea plus a separate Send button. Warm ivory field (#FFFEFA), 16px radius, 1px sage border that turns forest on focus. 16px / 1.45 type. No manual resize handle. Height grows from one line (40px) to 120px, then the field scrolls. Send is a 44px forest stamp inside the dock, bottom-right, using an up arrow. Empty and busy send states stay in the dock: muted sage when there is nothing to send, forest spinner while the Agent is working. Enter always makes a new line. Sending is the stamp or Command/Control + Enter. Shift+Enter also makes a new line. Do not send on a bare Return.
+The composer is one ink chat dock at every width: #243B32 surface, 20px radius, paper 16px / 1.45 type. Empty state is one short row: placeholder “Ask Agent to modify form…”, hint “Tap to expand or chat”, and send. No grab handle. The field stays one line until the coach types. Then the handle appears, longer text uses the full card width, and expand and send sit on their own row under the text.
 
 Starter prompts and the composer are one system. Tapping a prompt sends it. After the first turn, the dock is the primary way to continue.
 
@@ -459,15 +480,17 @@ Applied proposals become compact receipts explaining that the draft changed and 
 
 ### Manual editor, sections, and questions
 
-Build starts with the section overview, a short explanation, and Add section. Its toolbar provides Form settings and Review rules. Sections are white 12px-radius disclosures with a 1px border, numbered heading, question count, optional introduction, and Edit section. Start with sections expanded. Questions are divided rows, not nested cards: a small order number, the full label, type/required/conditional metadata, and a trailing arrow. Rows are at least 76px high and wrap long labels. Each section ends with a full-width Add question row.
+Build starts with the section/question count as an eyebrow, Form structure, and Add section. Below 900px, section rows are paper cards with a 14px radius and a 1px sage border. From 900px, render a flat divided list, not cards containing every question. Each row is a single full-width button, at least 76px tall, with a small order number, 16px title, 12px question count, and decorative chevron. Titles wrap; no separate pencil, expand control, or drag handle competes with the row action. Reorder with Move up and Move down on the open section. Even an 83-question form initially renders only its section rows.
 
-Selecting a section or question replaces the overview with an inspector. Put All sections before its heading and focus the heading when entering. Do not show the entire configuration tree beside a narrow mobile inspector. Section editing offers title, introduction, and explicit Move up / Move down controls. Disable movement at the first/last boundary.
+Opening a section replaces the overview with that section's title, introduction, question count pill, a grouped question list, and Add question to section. Below 900px the header back control is Sections on a section, and the section name on a question, then a divider and the form name. A gear opens Section details in the shared Sheet, question rows sit in one 12px paper card with type plus Required/Optional badges, and Move up, Move down, and Delete section sit after the add control. All sections remains in the work pane from 900px. Question rows are at least 68px tall. Opening a question replaces the section list with its focused editor. The contextual back action returns to the parent section. Focus the destination heading and reset the work pane scroll when navigating deeper or back. Keep the full form tree out of the focused editor at every width.
 
-Add section opens a short name dialog. Add question opens a short dialog with answer type and question text; after creation, open the new inspector. Do not require users to know schema keys. The question editor starts with question text, answer type, and Required, followed by only the controls relevant to that type. Preserve supported types: short text, long text, email, phone, number, single select, multi-select, boolean, scale, date, acknowledgement, and number with unit.
+Section details covers name and introduction. Reorder with Move up and Move down. Touch and keyboard users never need to drag.
+
+Add section uses the shared Sheet: Form structure eyebrow, Add new section, required Section title, optional Section introduction, and Add section. Below 900px it is full-width, no Cancel or close icon; dismiss with Escape, a tap on the faded area, or a downward drag. From 900px it is a centered 520px modal with Close. Add question opens a short dialog with answer type and question text; after creation, open the new inspector. Do not require users to know schema keys. The question editor starts with Edit question, then a paper card for question text, optional helper text, placeholder when the type supports it, answer type, type-specific controls, and a Required response switch. A Client preview card renders the live control with the same client field renderer; it is inert. Conditional visibility, Review rules that source this question, and Advanced identifier sit in folded paper cards. From 900px the preview sits beside the editor. Preserve supported types: short text, long text, email, phone, number, single select, multi-select, boolean, scale, date, acknowledgement, and number with unit.
 
 Select options use ordered rows with a visible label input and accessible Remove action. Renaming a choice preserves its stored option value. Add choice appends a new stable value; retain at least one option. Scale controls expose minimum, maximum, and endpoint labels. Number controls expose bounds and whole-number preference. Number-with-unit controls expose the default unit and supported unit configuration. Acknowledgement exposes its statement. Use native selects, checkboxes, and inputs with 46px minimum control height.
 
-Keep helper text/placeholders and conditional visibility in separate disclosures. Keep the technical answer key under Advanced; editing it requires an explicit Update and confirmation, rather than firing while typing. Below configuration, provide Move up/down, Duplicate question, and Delete question, with Done editing as the final full-width action. Reordering works by pointer or keyboard without dragging. Deletion names the item in a confirmation dialog and explains that it affects the draft. Historical published versions remain unchanged.
+Question wording uses a two-row textarea so long questions remain readable. Helper text lives in the main editor card. Conditional state stays visible in the fold summary as On or Off. Keep the technical answer key under Advanced identifier; editing it requires an explicit Update and confirmation, rather than firing while typing. Deletion names the item in a confirmation dialog and explains that it affects the draft. Historical published versions remain unchanged.
 
 ### Conditional logic and Review Rules
 
@@ -475,7 +498,7 @@ Conditional visibility begins with “Only show this question for certain answer
 
 Review rules use a separate inspector with plain-language guidance that these are deterministic coach-attention cues. Each rule is an amber-bordered disclosure with a 3px amber leading rule, a human flag message, and the same condition editor. Source references follow the selected questions. Add review rule is unavailable without questions to reference. Never use medical risk scores, diagnoses, or generated clinical advice in this editor.
 
-Form settings contains the form name, public title/description, welcome and success copy, and client identity mapping. Identity dropdowns use question labels. Place the public link and archive action after ordinary configuration. Archiving requires confirmation and saves pending valid changes first.
+Form settings starts with the internal form name and public title/description. Welcome screen, After submission, and Identify your clients are separate disclosure groups. Open identity configuration automatically when required name/email mapping is missing; otherwise show Configured in the summary. Keep every existing setting and save behavior. Identity dropdowns use question labels. Place the public link and archive action after ordinary configuration. Archiving requires confirmation and saves pending valid changes first.
 
 ### Save states and recovery
 
@@ -487,15 +510,15 @@ Keep a per-form recovery snapshot in session storage while the draft is dirty an
 
 ### Preview and publishing
 
-Preview is a dedicated full-width workspace with “Preview your draft”, a concise no-submission explanation, and the shared Mobile / Desktop preview selector. The mobile frame is at most 390px and the desktop frame at most 1160px. Allow the actual renderer to adapt to its container; never shrink a desktop screenshot to simulate a phone. Trial answers never become client submissions.
+Preview is a dedicated workspace. On phones, a compact row says “Preview” and “Nothing is submitted.” The real client experience begins immediately beneath it, without an explanatory hero, frame border, or viewport picker. From 680px, show the shared Mobile / Desktop selector above a framed client experience on a sage canvas. The mobile frame is at most 390px and the desktop frame at most 1160px. Allow the actual renderer to adapt to its container; never shrink a desktop screenshot to simulate a phone. Trial answers never become client submissions.
 
-Publish remains in the workspace header. Open a confirmation that summarizes the current draft and explains that the published version becomes available to clients while historical submissions remain linked to their original version. Flush edits before publishing. A conflict or validation failure prevents publication. During publication, prevent competing mutations. After success, announce publication and show “Published · Up to date”. Compare draft content, identity mapping, and review rules with the published snapshot; subsequent changes show “Published · Unpublished changes”. A saved draft is not the same as a published form.
+Publish is in Form tools below 900px and directly in the workspace header from 900px. Open a confirmation that summarizes the current draft and explains that the published version becomes available to clients while historical submissions remain linked to their original version. Flush edits before publishing. A conflict or validation failure prevents publication. During publication, prevent competing mutations. After success, announce publication and show “Published · Up to date”. Compare draft content, identity mapping, and review rules with the published snapshot; subsequent changes show “Published · Unpublished changes”. A saved draft is not the same as a published form.
 
 ### Feedback, accessibility, and motion
 
 An empty form shows a short explanation and Add section; an empty Agent shows useful example requests. Use restrained loading labels and skeletons where content is pending. Keep save/Agent errors close to their work area without replacing the draft. Success is a persistent, dismissible green notice. Conflict warnings are amber with concrete recovery controls. Do not rely on transient toasts.
 
-Use semantic headings, native disclosures and dialog focus behavior, visible control labels, programmatic button names, and textual statuses. Focus outlines are 2px forest with 3px offset. Touch actions are at least 44px, inputs 46px, mode controls 44px on small screens and 40px inside the 56px desktop toolbar; the Forms exit keeps a 44px hit area. Keep important feedback announced and preserve input values after errors. Buttons at reordering boundaries are disabled. Respect reduced motion: remove spinner animation and transitions; content stays readable and working state stays explicit. No decorative perpetual motion or layout animation is required.
+Use semantic headings, native disclosures and dialog focus behavior, visible control labels, programmatic button names, and textual statuses. Focus outlines are 2px forest with 3px offset. Touch actions are at least 44px, inputs 46px, mode controls 44px on small screens and 40px inside the 56px desktop toolbar; the Forms exit keeps a 44px hit area. Keep important feedback announced and preserve input values after errors. Position selectors disable when the section or question is the only item. Respect reduced motion: remove spinner animation and transitions; content stays readable and working state stays explicit. No decorative perpetual motion or layout animation is required.
 
 ## Review Flags and AI Coach Brief
 
@@ -509,7 +532,9 @@ Each sourced statement can disclose the question labels it is based on. Source d
 
 Desktop lists use a leading document symbol or initial, a flexible title/identity column, supporting metadata, a status badge, and a small trailing arrow. The entire row may be a link, but do not nest interactive controls inside it. Long names and emails wrap. Mobile moves status and arrow beneath the identity while preserving the leading alignment; never hide status to fit a row.
 
-Use native modal behavior for destructive confirmations: keyboard focus stays inside, Escape dismisses when no operation is pending, and focus returns to the trigger. Maximum width is 520px, padding 32px desktop / 24px mobile, radius 20px. Mobile dialogs sit near the bottom with safe margins and can scroll within 90dvh. The overlay is 40% dark green. Do not close a destructive dialog merely because a pointer misses its panel.
+Use native modal behavior for destructive confirmations: keyboard focus stays inside, Escape dismisses when no operation is pending, and focus returns to the trigger. Maximum width is 520px, padding 32px desktop / 24px mobile, radius 20px. Every dialog has a visible 44px Close dialog control at the top right, with heading clearance. Lock background scrolling and restore trigger focus on close. Disable dismissal during a pending mutation. Mobile dialogs sit near the bottom with safe margins and can scroll within 90dvh. The overlay is 40% dark green. Do not close a destructive dialog merely because a pointer misses its panel.
+
+Use the shared Sheet for short compose or edit tasks. Below 900px it is a full-width bottom sheet: paper panel, 20px top radius, grab handle, 40% dark-green overlay. Dismiss with Escape, a tap on the faded area, or a downward drag on the handle of at least 88px. From 900px it is a centered 520px modal with the 44px Close control, matching other dialogs. Native dialog semantics, body scroll lock, Tab inside, focus back to the opener. Optional Close (showClose) on small screens when the task needs an explicit dismiss control. Do not use Sheet for destructive confirmations.
 
 Client deletion identifies the client and precisely lists affected data. Require typed `DELETE`, keep Cancel available, and use the red destructive action. Explain that previously exported external copies are not removed. Workspace deletion is a separate pale-red danger area with the same typed confirmation and explicit scope. Routine configuration edits remain inline, not modal.
 
@@ -533,7 +558,7 @@ Delivery history is a divided list. A row shows event, text status, attempt coun
 
 ### Landing
 
-Use a restrained horizontal navigation with wordmark, in-page links, login, and primary start action. The hero is an asymmetric two-column composition: left editorial headline and concise product explanation, right an explicitly illustrative Agent-plus-client-form preview. A thin principles strip follows. Continue with an editorial explanation plus numbered steps, a three-perspective submission example, the two connections, and a quiet sage closing CTA. Do not add social proof, pricing, invented metrics, or testimonials. Mobile stacks copy before illustration, hides secondary desktop nav links, and retains the primary CTA.
+Use a restrained horizontal navigation with wordmark, in-page links, login, and primary start action. The hero is an asymmetric two-column composition: left editorial headline and concise product explanation, right an explicitly illustrative Agent-plus-client-form preview. A thin principles strip follows. Continue with an editorial explanation plus numbered steps, a three-perspective submission example, the two connections, and a quiet sage closing CTA. Do not add social proof, pricing, invented metrics, or testimonials. Mobile stacks copy before illustration, hides secondary desktop nav links, and retains both Log in and the primary CTA. Below 360px, compact the wordmark and gaps so both actions fit without horizontal scrolling.
 
 ### Login / Signup
 
@@ -545,11 +570,19 @@ Use a standalone page, not the workspace navigation. Show the brand, then a left
 
 ### Dashboard
 
-Use a personalized welcome header with Create onboarding. The main column starts with the sage Agent entry panel, then a client attention list or a useful empty state. The secondary column contains a short three-step workflow, recent forms, and a connections link. Populate exclusively from workspace records. These are recent records, not total business metrics. At tablet width stack the contextual column after the main work. Mobile uses the same priority order with full-width controls.
+Use a personalized welcome header with one primary action, Create onboarding. When the workspace already has forms or clients, the first region is a two-column work area inside the 1280px page: client attention on the left, up to four recent forms on the right. Do not repeat a second primary Agent button. When there are no forms and no clients, show the sage orientation panel and the empty client invitation instead of an empty work grid. Under either state, a next-steps band lists profile, forms, client review, and connections as text links. Populate exclusively from workspace records. These are recent records, not total business metrics. Below 1200px the work columns stack, attention first. Below 768px the next-steps links stack as a single list.
 
 ### Forms List
 
-Header: Forms, a short purpose statement, Create onboarding. Below: All forms / Draft / Published filter track and actual form count. Rows show form name, last updated date, version where available, status, and an edit affordance. A first-use state opens form creation. A filtered empty state returns to all forms. Mobile moves secondary status into a lower row rather than forcing a table to scroll.
+Use a compact Forms heading, one sentence explaining the workspace, and Create onboarding form as the primary action. Do not add a second eyebrow or promotional banner. Desktop aligns the action beside the heading; phones stack one full-width action beneath it. Under this, use an underlined filter track: Active, Drafts, Published, Archived. Active excludes archived forms. Published includes live forms with unpublished draft changes. A quiet count reflects the current view; desktop also says Recently updated first. Sort by the existing updated timestamp, never invented activity metrics.
+
+Use one divided white list at every size. Each row has a prominent form name linking to the builder, one metadata line with the published version when present and the updated date, and one status: Draft, Published, Unpublished changes, or Archived. The status belongs with the identity rather than in an isolated card. Rows wrap long titles. Desktop shows one contextual action: Publish for drafts/changes, Copy link for an up-to-date live form, or Restore for archived forms, followed by a 44px More icon. Phones below 680px show only the More icon beside the identity; opening the form remains the full readable name link. Keep publishing and copying available in the menu. No horizontal table or wall of row buttons.
+
+More opens the existing viewport-constrained management dialog with the full form name and one status. Group Open builder, Publish where relevant, Preview, View responses, and Copy public link when live; then Rename and Duplicate; then Archive/Restore and Delete only when allowed. Keep public history and destructive consequences explicit. Publishing makes this draft available at the existing client link; earlier submissions retain their original questions. A live form with unpublished changes still serves its previous published version until Publish. Rename does not change the public slug. Duplicate creates a separate draft with the existing copying behavior, not a copy of submissions or published history. Archive disables the public link while preserving history. Restore uses the existing lifecycle behavior. The server remains authoritative about deletion eligibility.
+
+Empty states are a short text region between fine borders, not marketing artwork. First use explains Agent/manual creation and links to the first form. When active forms are empty but archives exist, say No active forms and offer View archived forms plus creation. A filtered empty view offers Show active forms. An empty archive explains where archived forms appear. Use actual archive data to distinguish these states; do not assume an empty active list means a new workspace.
+
+The existing form responses screen uses the same page header, back link, filter track, and divided rows. Keep Export CSV in the header. Distinguish a first-use empty state from a filter with no matching responses; the latter offers a clear route back to all responses.
 
 ### Create Form
 
@@ -557,7 +590,7 @@ Use a clear creation title and two-region layout: name plus three selectable sta
 
 ### Form Builder
 
-Use the complete Form Builder Workspace specification above. Replace the ordinary app shell with a compact workspace toolbar that holds Forms, form identity, Agent / Build / Preview, save state, and Publish. Start Build with numbered, expanded sections and divided question rows; selecting an item opens a single inspector. Agent and Build are separate modes below 1100px, paired columns from 1100px, and Preview always occupies its own workspace. Save state and Publish remain visible. Preserve draft values and conversation when changing modes. Only explicit Apply changes mutates the draft; publishing is separate.
+Use the complete Form Builder Workspace specification above. Replace the ordinary app shell with a single 56px task header. Phones use a direct mode selector and separate Publish action inside Form tools. Build starts with compact section rows, then navigates into a section and a focused question editor. Agent and Build are separate modes below 1200px and paired columns from 1200px. Preview always occupies its own workspace. Preserve draft values and conversation when switching modes. Only explicit Apply changes mutates the draft; publishing is separate.
 
 ### Form Preview
 
@@ -579,15 +612,15 @@ Start with All clients, then a contact identity header. Name is dominant; email 
 
 Header identifies the client, form, version, submission time, review status, and Mark reviewed when applicable. Optional snapshot and notes precede the detailed review. Provide anchor navigation for Original answers, Review Flags, and AI Coach Brief.
 
-Desktop uses a wider white original-answer column and a narrower context column. The context column puts amber deterministic flags above the sage AI brief. Answers retain the client’s words and group by form section, using definition-list labels and values. Tablet stacks the columns; mobile puts attention/brief context before the full original answers, with anchors for quick access to either. Never blend generated prose into submitted answers. The visual distinction survives grayscale through headings, labels, borders, and layout.
+Desktop uses a wider white original-answer column and a narrower context column. The context column puts amber deterministic flags above the sage AI brief. Answers retain the client’s words and group by form section, using definition-list labels and values. Tablet stacks the columns. On mobile, the visual order is deterministic Review Flags, original answers, then AI Coach Brief, with 44px anchor targets for direct navigation. Do not make clients’ original words sit below a long generated brief. Never blend generated prose into submitted answers. The visual distinction survives grayscale through headings, labels, borders, and layout.
 
 ### Settings
 
-Use a workspace title and a primary settings column. Group coaching profile, connected tools, and data export into separate simple white regions. A quiet secondary explanation can sit to the right. The destructive workspace area appears below normal settings with red semantics and typed confirmation. Mobile stacks everything. Do not add billing, subscriptions, teams, notification preferences, or unsupported appearance toggles.
+Use a workspace title and a primary settings column. Coaching profile and Connections are two divided navigation rows on one white surface: heading and description at left, arrow at right, whole row linked. Put Workspace data below a structural divider with the Export workspace action. Keep workspace deletion last as a quiet red action; only opening its dialog reveals the full irreversible scope and typed DELETE confirmation. A restrained right column explains profile effects and where to find account actions. Mobile stacks this context after the settings. Do not add unsupported preferences, billing, teams, or appearance controls.
 
 ### Coaching Profile
 
-Keep the standard shell and a clear heading explaining how the profile informs the Agent. Use a 720px maximum white form surface with generous vertical spacing. Identity, coaching types, target clients, related preferences, philosophy, and programming considerations form a predictable top-to-bottom sequence. Save profile is the main action; success is announced near the button. Mobile retains the same grouping with full-width fields. Updating profile does not imply republishing forms.
+Keep the standard shell and a clear heading explaining how the profile informs the Agent. Use a 720px maximum white form surface with generous vertical spacing. Use two labeled groups: Your identity (business and coach names), and Your coaching (coaching types, target clients, nutrition and health-screening preferences). Put philosophy and programming considerations in one optional More about your approach disclosure. Required identity and target-client fields use native validation. Save profile is the main action; success is announced near the button. Mobile retains the same grouping with full-width fields. Updating profile does not imply republishing forms.
 
 ### Connections
 
@@ -599,14 +632,14 @@ Responsiveness changes composition, not just font sizes. Support 320px through w
 
 | Region | Desktop | Tablet / laptop | Mobile |
 | --- | --- | --- | --- |
-| Workspace navigation | Fixed 232px sidebar | 192px sidebar at 768–1199px | Five-item bottom navigation; no sidebar |
-| Page header | Title left, action right | Wrap when needed | Title, description, then full-width action group |
-| Dashboard | Main work + context column | Single column below 1200px | Main task, attention, then context |
-| Builder | Agent 380px + flexible Build from 1100px; Agent 420px from 1500px | One full-width mode below 1100px | Agent / Build / Preview; no global bottom navigation |
+| Workspace navigation | Fixed 216px sidebar from 1200px; one account menu, no top bar | 88px labeled rail at 768–1199px; no top bar | 56px wordmark/current-area header; content-height navigation sheet with workspace and session actions; no bottom bar |
+| Page header | Title left, action right, inside a 1280px column | Wrap when needed | Title, description, then full-width action group |
+| Dashboard | Attention and recent forms in two columns, then a four-step band; empty workspace uses the sage panel instead | Single column below 1200px; steps in two columns | Attention, forms, then stacked steps |
+| Builder | Agent 380px + flexible Build from 1200px; Agent 420px from 1500px | One full-width mode below 1200px | Agent / Build / Preview; no global bottom navigation |
 | Builder structure | Section overview or selected inspector; independent pane scrolling | Same | Inspector replaces overview; All sections returns |
 | Public onboarding | 240px rail + 80px gap + 600px question column at container ≥1000px | Center 600px column; rail disappears below 1000px container | 20px gutters (16px below 360px); short question groups; sticky actions become static when keyboard is detected |
 | Preview | Frame follows chosen width | Container query adapts renderer | Frame fits available width; no scaled desktop screenshot |
-| Submission | Answers + flags/brief context | Stacked columns | Context first, answers next, anchor navigation |
+| Submission | Answers + flags/brief context | Stacked columns | Review Flags, original answers, AI brief; 44px anchor navigation |
 | Connections | Two destination columns + delivery list | Stack below 1200px | Full-width forms, actions wrap, URLs break safely |
 | Lists | Identity + metadata + status in one row | Wrap metadata | Status moves below identity; no horizontal table |
 | Auth | Narrative + form | Two regions while readable | Brand + form; narrative removed |
@@ -654,6 +687,27 @@ Never expose implementation phases, database status, route placeholders, interna
 - No unlabeled input, hover-only action, icon-only critical status, or disabled-looking active control.
 - No AI content visually merged with original answers. No Review Flag styled as an AI suggestion.
 - No new visual system for an isolated screen. Extend the existing patterns deliberately.
+
+## Shared interaction refinements
+
+These conventions apply across forms, connections, settings, client review, and account controls. Preserve existing server contracts; refine only their presentation and interaction.
+
+- Keep one primary action per decision region. The Forms page's filled Create onboarding action outranks row-level Publish, which uses a neutral button. More is a 44px icon with a form-specific accessible name and opens the shared dialog. Do not repeat equal-weight primary actions across a list.
+- Management dialogs have a visible close control, Escape support, native focus containment, a readable heading, and cancellation before commitment. Irreversible or service-disrupting actions explain consequences before the action: workspace/client deletion, Google disconnect, webhook disable, and signing-secret replacement. Typed DELETE remains required only for the existing privacy deletion flows.
+- A pending action prevents duplicate activation, exposes a specific working label, and restores controls after a network error. Preserve edited values. Success and failure use separate semantic treatments: sage status versus amber alert. A successful save must not hide an unresolved conflict or imply publication.
+- Copy actions confirm success only after clipboard completion. If clipboard access fails, expose a selectable read-only public link or signing secret so the user can copy it manually.
+- Desktop account menus support Arrow Up/Down, Home/End, Escape, and normal Tab exit. Mobile navigation has a visible Close navigation action inside its right-edge drawer, with Escape and backdrop dismissal. No persistent bottom app navigation.
+- Authentication includes a Show/Hide password button inside the field boundary, with a stable Password label and correct autocomplete. Signup explains the existing eight-character minimum. Visibility changes never clear the password. Authentication errors retain all entered values.
+- AI brief failures leave original answers available and expose Retry. Failed initial requests cannot leave an endless pending label. Source disclosures say Based on 1 answer or Based on n answers and keep 44px hit targets.
+- An empty Review Flags region says No rule-based flags and uses a neutral surface. It must not announce Coach review needed when no rule fired. This does not imply medical clearance.
+
+### Connections composition
+
+Use the same white, 14px-radius connection surface for both services. Start each with service name, textual status, and one short purpose statement. On phones use a single column; at 1200px use two equal columns aligned at their tops. Recent deliveries spans both columns. Inputs stay full width with persistent visible labels.
+
+Google Sheets shows the current destination and Open spreadsheet first. Move replacement controls into Change spreadsheet; open that group when no destination exists. Keep Test connection visible and Disconnect quieter. Webhooks show a divided destination list with status and wrapping endpoint text. Manage [destination] discloses test, enable/disable, retry, and secret rotation. Add webhook reveals a short named form; the empty state shows that form directly. Signing and receiver setup is a separate technical disclosure, never the introductory paragraph.
+
+New signing secrets use a full-width notice above the connection cards with explicit one-time visibility guidance, selectable code, and Copy secret. Recent deliveries show a human event label, destination, attempts, timestamp, status, and the supported Retry action. Error details are a disclosure; the stored-submission reassurance remains visible. A retry that still fails must report failure, not a green success message.
 
 ## AI Handoff Instructions
 
