@@ -19,7 +19,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ c
   return (
     <AppShell businessName={profile.businessName}>
       <main className="mx-auto w-full max-w-7xl px-4 py-10">
-        <Link href="/clients" className="text-sm text-muted">
+        <Link href="/clients" className="page-back">
           All clients
         </Link>
         <div className="client-profile-head"><div><p className="eyebrow">Client profile</p><h1 className="mt-3 font-display text-4xl tracking-tight">{loaded.client.fullName}</h1>
@@ -34,10 +34,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ c
           </a>
           <DeleteClientButton clientId={loaded.client.id} name={loaded.client.fullName} />
         </div></div>
-        <p className="mt-3 max-w-[65ch] text-sm text-muted">
-          Export is JSON: client identity, submissions, flags, notes, and Coach Brief if present. The filename does not include
-          email. Deleting removes this application&apos;s copy. External Sheets/webhook copies are not deleted.
-        </p>
+        <p className="mt-3 max-w-[65ch] text-sm text-muted">Export includes this client’s responses, notes, flags, and AI briefs in a JSON file.</p>
         <h2 className="mt-10 font-display text-2xl tracking-tight">Onboarding history</h2>
         {loaded.submissions.length === 0 ? (
           <p className="mt-3 text-muted">No submissions yet.</p>
