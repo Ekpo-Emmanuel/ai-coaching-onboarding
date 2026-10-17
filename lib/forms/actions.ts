@@ -2,7 +2,7 @@
 
 import { getPoolDb } from "@/lib/db/node";
 import { DraftConflictError, FormServiceError, SchemaParseError } from "@/lib/forms/errors";
-import { archiveForm, createForm, publishForm, renameForm, updateDraft } from "@/lib/forms/service";
+import { archiveForm, createForm, deleteForm, duplicateForm, publishForm, renameForm, restoreForm, updateDraft } from "@/lib/forms/service";
 import { emmanuelOnboardingV1 } from "@/lib/onboarding/schemas/emmanuel-onboarding-v1";
 import { requireWorkspace } from "@/lib/workspace/session";
 
@@ -91,6 +91,36 @@ export async function archiveFormAction(formId: string) {
   const { workspace } = await requireWorkspace();
   try {
     await archiveForm(getPoolDb(), workspace.id, formId);
+    return { ok: true as const };
+  } catch (error) {
+    return asError(error);
+  }
+}
+
+export async function restoreFormAction(formId: string) {
+  const { workspace } = await requireWorkspace();
+  try {
+    await restoreForm(getPoolDb(), workspace.id, formId);
+    return { ok: true as const };
+  } catch (error) {
+    return asError(error);
+  }
+}
+
+export async function duplicateFormAction(formId: string) {
+  const { workspace } = await requireWorkspace();
+  try {
+    const created = await duplicateForm(getPoolDb(), workspace.id, formId);
+    return { ok: true as const, formId: created.form.id, name: created.form.name };
+  } catch (error) {
+    return asError(error);
+  }
+}
+
+export async function deleteFormAction(formId: string) {
+  const { workspace } = await requireWorkspace();
+  try {
+    await deleteForm(getPoolDb(), workspace.id, formId);
     return { ok: true as const };
   } catch (error) {
     return asError(error);
