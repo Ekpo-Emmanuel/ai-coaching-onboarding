@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CoachBriefPayload, SourcedText } from "@/lib/intelligence/types";
 import type { CoachBriefStatus } from "@/lib/db/schema";
 
@@ -20,8 +20,11 @@ export function CoachBriefPanel({
 }) {
   const [brief, setBrief] = useState<BriefState | null>(initial);
   const [busy, setBusy] = useState(false);
+  const lock = useRef(false);
 
   async function generate(retry = false) {
+    if (lock.current) return;
+    lock.current = true;
     setBusy(true);
     try {
       const response = await fetch(`/api/submissions/${submissionId}/coach-brief/generate`, {
@@ -30,8 +33,10 @@ export function CoachBriefPanel({
         body: JSON.stringify({ retry }),
       });
       const payload = (await response.json().catch(() => null)) as BriefState | { error?: string } | null;
-      if (payload && "status" in payload) setBrief(payload);
-    } finally {
+      if (!response.ok || !payload || !("status" in payload)) throw new Error("Brief unavailable");
+      setBrief(payload);
+    } catch { setBrief({ status: "failed" }); } finally {
+      lock.current = false;
       setBusy(false);
     }
   }
@@ -44,10 +49,10 @@ export function CoachBriefPanel({
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ retry: false }),
     })
-      .then((response) => response.json().catch(() => null))
+      .then((response) => { if (!response.ok) throw new Error("Brief unavailable"); return response.json(); })
       .then((payload: BriefState | { error?: string } | null) => {
-        if (!cancelled && payload && "status" in payload) setBrief(payload);
-      });
+        if (!cancelled) setBrief(payload && "status" in payload ? payload : { status: "failed" });
+      }).catch(() => { if (!cancelled) setBrief({ status: "failed" }); });
     return () => {
       cancelled = true;
     };
@@ -74,7 +79,7 @@ export function CoachBriefPanel({
           </button>
         </div>
       ) : (
-        <p className="mt-4 text-muted">{busy || brief?.status === "processing" ? "Generating brief…" : "Pending generation."}</p>
+        <p role="status" className="mt-4 text-muted">{busy || brief?.status === "processing" ? "Generating brief…" : "Pending generation."}</p>
       )}
     </section>
   );
@@ -129,7 +134,7 @@ function SourcedBlock({ title, item, labels }: { title?: string; item: SourcedTe
       {title ? <h3 className="font-display text-xl tracking-tight">{title}</h3> : null}
       <p className={title ? "mt-2" : ""}>{item.text}</p>
       <button type="button" className="mt-2 text-sm text-muted" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
-        {open ? "Hide sources" : `Based on ${item.sourceFieldKeys.length} answers`}
+        {open ? "Hide sources" : `Based on ${item.sourceFieldKeys.length} ${item.sourceFieldKeys.length === 1 ? "answer" : "answers"}`}
       </button>
       {open ? (
         <ul className="mt-2 text-sm text-muted">
