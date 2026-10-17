@@ -7,6 +7,7 @@ export type FormRow = {
   status: string;
   versionNumber: number | null;
   updatedAt: Date | string;
+  publication?: "draft" | "live" | "changes" | "archived";
 };
 export type ClientRow = {
   client: { id: string; fullName: string; email: string };
@@ -38,7 +39,17 @@ export function FormRows({ rows }: { rows: FormRow[] }) {
               </small>
             </div>
             <div className="row-end">
-              <StatusBadge status={row.status} />
+              <StatusBadge
+                status={
+                  row.publication === "live"
+                    ? "published"
+                    : row.publication === "changes"
+                      ? "changes"
+                      : row.publication === "archived"
+                        ? "archived"
+                        : row.status
+                }
+              />
               <span className="row-arrow" aria-hidden="true">
                 ↗
               </span>
@@ -108,8 +119,42 @@ export function DashboardView({
           </Link>
         }
       />
-      <div className="dashboard-grid">
-        <div>
+      {forms.length || clients.length ? (
+        <div className="dashboard-work">
+          <section>
+            <div className="section-heading">
+              <h2>Ready for your attention</h2>
+              <Link className="text-link" href="/clients">
+                View clients ↗
+              </Link>
+            </div>
+            {attention.length ? (
+              <ClientRows rows={attention} />
+            ) : (
+              <EmptyState
+                title="You're up to date."
+                description="Your recent clients have been reviewed. New submissions will appear here."
+              />
+            )}
+          </section>
+          <section>
+            <div className="section-heading">
+              <h2>Recent forms</h2>
+              <Link className="text-link" href="/forms">
+                All forms ↗
+              </Link>
+            </div>
+            {forms.length ? (
+              <FormRows rows={forms.slice(0, 4)} />
+            ) : (
+              <p className="dashboard-note">
+                No forms yet. Your first draft starts with your coaching approach.
+              </p>
+            )}
+          </section>
+        </div>
+      ) : (
+        <div className="dashboard-intro">
           <section className="start-panel">
             <p className="eyebrow">Thoughtful onboarding, built together</p>
             <h2>
@@ -119,81 +164,51 @@ export function DashboardView({
             </h2>
             <p>
               Turn your coaching approach into the right questions. Your Agent
-              drafts. You make it yours.
+              drafts. You make it yours. Create onboarding above to start.
             </p>
-            <Link href="/forms/new" className="button button-primary">
-              Build with Agent <span aria-hidden="true">↗</span>
-            </Link>
           </section>
-          <div className="section-heading">
-            <h2>Ready for your attention</h2>
-            <Link className="text-link" href="/clients">
-              View clients ↗
-            </Link>
-          </div>
-          {attention.length ? (
-            <ClientRows rows={attention} />
-          ) : (
-            <EmptyState
-              title={
-                clients.length
-                  ? "You're up to date."
-                  : "Your next client starts here."
-              }
-              description={
-                clients.length
-                  ? "Your recent clients have been reviewed. New submissions will appear here."
-                  : "Share a published onboarding link. When a client responds, you'll find their information here."
-              }
-              href="/forms"
-              action="Go to your forms"
-            />
-          )}
+          <EmptyState
+            title="Your next client starts here."
+            description="Share a published onboarding link. When a client responds, you'll find their information here."
+            href="/forms"
+            action="Go to your forms"
+          />
         </div>
-        <aside className="dashboard-aside">
+      )}
+      <section className="dashboard-follow" aria-label="Your next steps">
+        <div>
           <p className="eyebrow">Your next steps</p>
-          <ol className="workflow-list">
-            <li>
-              <div>
-                <Link href="/settings/profile">Make it personal</Link>
-                <small>Keep your coaching profile up to date.</small>
-              </div>
-            </li>
-            <li>
-              <div>
-                <Link href="/forms">Build your onboarding</Link>
-                <small>Refine, preview, then publish.</small>
-              </div>
-            </li>
-            <li>
-              <div>
-                <Link href="/clients">Start with understanding</Link>
-                <small>Review answers, flags, and the AI brief.</small>
-              </div>
-            </li>
-          </ol>
-          <div className="section-heading">
-            <h2>Recent forms</h2>
-          </div>
-          {forms.length ? (
-            <FormRows rows={forms.slice(0, 3)} />
-          ) : (
-            <p>
-              No forms yet. Your first draft starts with your coaching approach.
-            </p>
-          )}
-          <Link className="text-link mt-5" href="/forms">
-            All forms ↗
-          </Link>
-          <div className="section-heading">
-            <h2>Keep your tools connected</h2>
-          </div>
-          <p>Send new submissions to Google Sheets or a signed webhook.</p>
-          <Link className="text-link mt-4" href="/settings/connections">
-            Manage connections ↗
-          </Link>
-        </aside>
-      </div>
+          <p className="dashboard-note">
+            Profile, forms, review, then optional delivery.
+          </p>
+        </div>
+        <ol className="workflow-list">
+          <li>
+            <div>
+              <Link href="/settings/profile">Make it personal</Link>
+              <small>Keep your coaching profile up to date.</small>
+            </div>
+          </li>
+          <li>
+            <div>
+              <Link href="/forms">Build your onboarding</Link>
+              <small>Refine, preview, then publish.</small>
+            </div>
+          </li>
+          <li>
+            <div>
+              <Link href="/clients">Start with understanding</Link>
+              <small>Review answers, flags, and the AI brief.</small>
+            </div>
+          </li>
+          <li>
+            <div>
+              <Link href="/settings/connections">Keep tools connected</Link>
+              <small>Google Sheets or a signed webhook.</small>
+            </div>
+          </li>
+        </ol>
+      </section>
     </main>
   );
 }
