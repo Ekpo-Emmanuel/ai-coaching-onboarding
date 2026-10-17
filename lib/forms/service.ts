@@ -1,5 +1,5 @@
-import { and, desc, eq, isNull, ne } from "drizzle-orm";
-import { form, formDraft, formVersion } from "@/lib/db/schema";
+import { and, count, desc, eq, inArray, isNull, ne } from "drizzle-orm";
+import { form, formDraft, formVersion, submission } from "@/lib/db/schema";
 import type { FormsDatabase } from "@/lib/db/node";
 import type { OnboardingSchema } from "@/lib/onboarding/schema/types";
 import { createBlankOnboardingSchema } from "./blank-schema";
@@ -13,6 +13,7 @@ import {
   type ClientIdentityMapping,
 } from "./identity";
 import { parseOnboardingSchema } from "./parse-schema";
+import { formSnapshotFingerprint } from "./fingerprint";
 import { createFormSlug } from "./slug";
 import { isLegacyV1Schema } from "./legacy";
 import { EMPTY_REVIEW_RULES, type ReviewRuleSet } from "@/lib/review/types";
@@ -42,8 +43,40 @@ async function uniqueSlug(db: FormsDatabase, name: string, preferred?: string) {
   throw new FormServiceError("Could not allocate a public URL. Try a different name.");
 }
 
-export async function listForms(db: FormsDatabase, workspaceId: string) {
-  return db
+export type FormPublication = "draft" | "live" | "changes" | "archived";
+
+export type FormListItem = {
+  id: string;
+  name: string;
+  slug: string;
+  status: "draft" | "published" | "archived";
+  updatedAt: Date;
+  versionNumber: number | null;
+  publication: FormPublication;
+  canDelete: boolean;
+};
+
+async function historyCounts(db: FormsDatabase, formIds: string[]) {
+  const versions = new Map<string, number>();
+  const submissions = new Map<string, number>();
+  if (formIds.length === 0) return { versions, submissions };
+  const versionRows = await db
+    .select({ formId: formVersion.formId, total: count() })
+    .from(formVersion)
+    .where(inArray(formVersion.formId, formIds))
+    .groupBy(formVersion.formId);
+  const submissionRows = await db
+    .select({ formId: submission.formId, total: count() })
+    .from(submission)
+    .where(inArray(submission.formId, formIds))
+    .groupBy(submission.formId);
+  for (const row of versionRows) versions.set(row.formId, Number(row.total));
+  for (const row of submissionRows) submissions.set(row.formId, Number(row.total));
+  return { versions, submissions };
+}
+
+export async function listForms(db: FormsDatabase, workspaceId: string, scope: "active" | "archived" = "active") {
+  const rows = await db
     .select({
       id: form.id,
       name: form.name,
@@ -51,11 +84,53 @@ export async function listForms(db: FormsDatabase, workspaceId: string) {
       status: form.status,
       updatedAt: form.updatedAt,
       versionNumber: formVersion.versionNumber,
+      draftSchema: formDraft.schema,
+      draftIdentity: formDraft.clientIdentityMapping,
+      draftRules: formDraft.reviewRules,
+      versionSchema: formVersion.schema,
+      versionIdentity: formVersion.clientIdentityMapping,
+      versionRules: formVersion.reviewRules,
     })
     .from(form)
+    .leftJoin(formDraft, eq(formDraft.formId, form.id))
     .leftJoin(formVersion, eq(form.activePublishedVersionId, formVersion.id))
-    .where(and(eq(form.workspaceId, workspaceId), ne(form.status, "archived")))
+    .where(
+      and(
+        eq(form.workspaceId, workspaceId),
+        scope === "archived" ? eq(form.status, "archived") : ne(form.status, "archived"),
+      ),
+    )
     .orderBy(desc(form.updatedAt));
+  const history = await historyCounts(db, rows.map((row) => row.id));
+  return rows.map((row): FormListItem => {
+    const published = row.status === "published" && row.versionSchema != null;
+    const same =
+      published &&
+      formSnapshotFingerprint({
+        schema: row.draftSchema,
+        identity: row.draftIdentity,
+        reviewRules: row.draftRules,
+      }) ===
+        formSnapshotFingerprint({
+          schema: row.versionSchema,
+          identity: row.versionIdentity,
+          reviewRules: row.versionRules,
+        });
+    const publication: FormPublication =
+      row.status === "archived" ? "archived" : row.status === "draft" ? "draft" : same ? "live" : "changes";
+    const versionCount = history.versions.get(row.id) ?? 0;
+    const submissionCount = history.submissions.get(row.id) ?? 0;
+    return {
+      id: row.id,
+      name: row.name,
+      slug: row.slug,
+      status: row.status,
+      updatedAt: row.updatedAt,
+      versionNumber: row.versionNumber,
+      publication,
+      canDelete: versionCount === 0 && submissionCount === 0,
+    };
+  });
 }
 
 export async function getWorkspaceForm(db: FormsDatabase, workspaceId: string, formId: string) {
@@ -261,13 +336,61 @@ export async function publishForm(
 }
 
 export async function archiveForm(db: FormsDatabase, workspaceId: string, formId: string) {
-  await getWorkspaceForm(db, workspaceId, formId);
+  const record = await getWorkspaceForm(db, workspaceId, formId);
+  if (record.status === "archived") return record;
   const [updated] = await db
     .update(form)
     .set({ status: "archived", updatedAt: new Date() })
     .where(and(eq(form.id, formId), eq(form.workspaceId, workspaceId)))
     .returning();
   return updated;
+}
+
+export async function restoreForm(db: FormsDatabase, workspaceId: string, formId: string) {
+  const record = await getWorkspaceForm(db, workspaceId, formId);
+  if (record.status !== "archived") return record;
+  const status = record.activePublishedVersionId ? "published" : "draft";
+  const [updated] = await db
+    .update(form)
+    .set({ status, updatedAt: new Date() })
+    .where(and(eq(form.id, formId), eq(form.workspaceId, workspaceId)))
+    .returning();
+  return updated;
+}
+
+export async function duplicateForm(db: FormsDatabase, workspaceId: string, formId: string) {
+  const source = await getWorkspaceForm(db, workspaceId, formId);
+  const draft = await getWorkspaceDraft(db, workspaceId, formId);
+  const name = `${source.name.trim()} copy`;
+  const slug = await uniqueSlug(db, name);
+  return db.transaction(async (tx) => {
+    const [created] = await tx
+      .insert(form)
+      .values({ workspaceId, name, slug, status: "draft" })
+      .returning();
+    const schema = bindSchemaToForm(draft.schema, created.id, name);
+    const [copy] = await tx
+      .insert(formDraft)
+      .values({
+        workspaceId,
+        formId: created.id,
+        schema,
+        clientIdentityMapping: draft.clientIdentityMapping,
+        reviewRules: draft.reviewRules,
+        revision: 1,
+      })
+      .returning();
+    return { form: created, draft: { ...copy, schema } };
+  });
+}
+
+export async function deleteForm(db: FormsDatabase, workspaceId: string, formId: string) {
+  await getWorkspaceForm(db, workspaceId, formId);
+  const history = await historyCounts(db, [formId]);
+  if ((history.versions.get(formId) ?? 0) > 0 || (history.submissions.get(formId) ?? 0) > 0) {
+    throw new FormServiceError("This onboarding has published history. Archive it instead of deleting it.");
+  }
+  await db.delete(form).where(and(eq(form.id, formId), eq(form.workspaceId, workspaceId)));
 }
 
 export async function getPublishedFormBySlug(db: FormsDatabase, slug: string) {
