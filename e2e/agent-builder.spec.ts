@@ -75,19 +75,19 @@ test("mocked agent propose, apply, reject, and failure", async ({ page }) => {
   }
   await expect(page.getByText("Tell me what to change.")).toBeVisible();
   await page.getByLabel("Message the Agent").fill("Make this shorter");
-  await page.getByRole("button", { name: "Send" }).click();
+  await page.getByRole("button", { name: "Send", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Proposed changes" })).toBeVisible();
   await page.getByRole("button", { name: "Apply changes" }).click();
   await expect(page.getByRole("heading", { name: "Shorter onboarding" })).toBeVisible();
 
   await page.getByLabel("Message the Agent").fill("Add supplements");
-  await page.getByRole("button", { name: "Send" }).click();
-  await expect(page.getByText("Proposed changes").nth(1)).toBeVisible();
+  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Proposed changes", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Reject" }).last().click();
   await expect(page.getByText("Rejected. The draft was not changed.").last()).toBeVisible();
 
   await page.getByLabel("Message the Agent").fill("fail please");
-  await page.getByRole("button", { name: "Send" }).click();
+  await page.getByRole("button", { name: "Send", exact: true }).click();
   await expect(page.getByText(/couldn't complete that request/i)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Shorter onboarding" })).toBeVisible();
 });
