@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
+import { unstable_rethrow, useRouter } from "next/navigation";
 import { completeCoachSetup, updateCoachingProfile } from "@/lib/workspace/actions";
 import { COACHING_TYPE_OPTIONS, type CoachingProfileInput } from "@/lib/workspace/profile";
 
@@ -10,6 +11,8 @@ type Props = {
 };
 
 export function CoachingProfileForm({ mode, initial }: Props) {
+  const router = useRouter();
+  const lock = useRef(false);
   const [businessName, setBusinessName] = useState(initial?.businessName ?? "");
   const [coachName, setCoachName] = useState(initial?.coachName ?? "");
   const [coachingTypes, setCoachingTypes] = useState<string[]>(initial?.coachingTypes ?? []);
@@ -38,6 +41,8 @@ export function CoachingProfileForm({ mode, initial }: Props) {
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
+    if (lock.current) return;
+    lock.current = true;
     setLoading(true);
     setError("");
     setStatus("");
@@ -51,6 +56,7 @@ export function CoachingProfileForm({ mode, initial }: Props) {
       coachingPhilosophy,
       programmingConsiderations,
     };
+    try {
     const result =
       mode === "setup" ? await completeCoachSetup(payload) : await updateCoachingProfile(payload);
     if (result?.error) {
@@ -60,15 +66,20 @@ export function CoachingProfileForm({ mode, initial }: Props) {
     }
     if (mode === "edit") {
       setStatus("Saved");
+      router.refresh();
       setLoading(false);
     }
+    } catch (reason) { unstable_rethrow(reason); setError("Could not save your profile. Your answers are still here. Try again."); }
+    finally { lock.current = false; setLoading(false); }
   }
 
   return (
     <form onSubmit={onSubmit} className="profile-form flex flex-col gap-6">
+      <fieldset className="profile-group" disabled={loading}><legend>Your identity</legend>
       <label className="flex flex-col gap-2">
         <span className="font-display tracking-tight">Business name</span>
         <input
+          required autoComplete="organization"
           value={businessName}
           onChange={(event) => setBusinessName(event.target.value)}
           className="min-h-12 rounded-2xl border border-line bg-surface px-4 outline-none focus:border-accent"
@@ -77,12 +88,14 @@ export function CoachingProfileForm({ mode, initial }: Props) {
       <label className="flex flex-col gap-2">
         <span className="font-display tracking-tight">Coach name</span>
         <input
+          required autoComplete="name"
           value={coachName}
           onChange={(event) => setCoachName(event.target.value)}
           className="min-h-12 rounded-2xl border border-line bg-surface px-4 outline-none focus:border-accent"
         />
       </label>
-      <fieldset className="flex flex-col gap-3">
+      </fieldset><fieldset className="profile-group" disabled={loading}><legend>Your coaching</legend>
+      <fieldset className="coaching-types">
         <legend className="font-display tracking-tight">Coaching type</legend>
         {COACHING_TYPE_OPTIONS.map((option) => (
           <label key={option.value} className="flex min-h-11 items-center gap-3">
@@ -99,6 +112,7 @@ export function CoachingProfileForm({ mode, initial }: Props) {
         <span className="font-display tracking-tight">Who do you primarily help?</span>
         <textarea
           rows={4}
+          required
           value={targetClientDescription}
           onChange={(event) => setTargetClientDescription(event.target.value)}
           placeholder="Tell us about your clients, their goals, and the support they need."
@@ -129,6 +143,7 @@ export function CoachingProfileForm({ mode, initial }: Props) {
           </select>
         </label>
       </fieldset>
+      </fieldset><details className="profile-optional"><summary>More about your approach (optional)</summary><div>
       <label className="flex flex-col gap-2">
         <span className="font-display tracking-tight">Coaching philosophy (optional)</span>
         <textarea
@@ -147,6 +162,7 @@ export function CoachingProfileForm({ mode, initial }: Props) {
           className="rounded-2xl border border-line bg-surface px-4 py-3 outline-none focus:border-accent"
         />
       </label>
+      </div></details>
       {error ? (
         <p className="text-warn" role="alert">
           {error}
