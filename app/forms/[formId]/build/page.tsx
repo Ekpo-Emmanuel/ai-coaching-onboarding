@@ -87,6 +87,7 @@ async function loadBuilder(workspaceId: string, formId: string) {
         role: item.role,
         content: item.content,
         changeSetId: item.changeSetId,
+        createdAt: item.createdAt.toISOString(),
       })),
       changeSets,
     };
