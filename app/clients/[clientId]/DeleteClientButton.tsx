@@ -2,7 +2,7 @@
 
 import { Modal } from "@/components/product/Modal";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 export function DeleteClientButton({ clientId, name }: { clientId: string; name: string }) {
   const router = useRouter();
@@ -11,9 +11,14 @@ export function DeleteClientButton({ clientId, name }: { clientId: string; name:
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
+  const lock = useRef(false);
+
   async function onDelete() {
+    if (lock.current) return;
+    lock.current = true;
     setBusy(true);
     setError("");
+    try {
     const response = await fetch(`/api/clients/${clientId}`, {
       method: "DELETE",
       headers: { "content-type": "application/json" },
@@ -27,15 +32,17 @@ export function DeleteClientButton({ clientId, name }: { clientId: string; name:
     }
     router.push("/clients");
     router.refresh();
+    } catch { setError("Could not confirm deletion. Please try again."); }
+    finally { lock.current = false; setBusy(false); }
   }
 
   return (
     <>
-      <button type="button" className="rounded-full border border-line px-4 py-2 text-sm" onClick={() => setOpen(true)}>
+      <button type="button" className="quiet-action danger-text" onClick={() => { setConfirm(""); setError(""); setOpen(true); }}>
         Delete client data
       </button>
       {open ? (
-        <Modal titleId="delete-client-title" onClose={() => !busy && setOpen(false)}>
+        <Modal busy={busy} titleId="delete-client-title" onClose={() => !busy && setOpen(false)}>
             <h2 id="delete-client-title" className="font-display text-2xl tracking-tight">
               Delete {name}?
             </h2>
