@@ -4,7 +4,7 @@ import { loadEnvConfig } from "@next/env";
 import { Pool } from "pg";
 
 async function saved(page: Page) { await expect(page.locator('.bw-save')).toHaveText('Saved', { timeout: 20_000 }); }
-async function mode(page: Page, name: string) { await page.getByRole('navigation', { name: 'Workspace modes' }).getByRole('button', { name: new RegExp('^' + name) }).click(); }
+async function mode(page: Page, name: string) { const selector=page.getByRole('combobox',{name:'Workspace mode',exact:true}); if(await selector.isVisible()){ await selector.selectOption(name.toLowerCase()); return; } await page.getByRole('navigation', { name: 'Workspace modes' }).getByRole('button', { name: new RegExp('^' + name) }).click(); }
 async function overview(page: Page) { await mode(page, 'Build'); const back = page.getByRole('button', { name: 'All sections' }); if (await back.isVisible()) await back.click(); }
 async function openFormTool(page: Page, name: 'Review rules' | 'Form settings') {
   const tools = page.getByRole('button', { name: 'Form tools' });
@@ -17,7 +17,8 @@ async function openFormTool(page: Page, name: 'Review rules' | 'Form settings') 
 }
 async function addQuestion(page: Page, type: string, question: string) {
   await overview(page);
-  await page.locator('.bw-section').filter({ has: page.locator('summary', { hasText: 'Training context' }) }).getByRole('button', { name: 'Add question', exact: true }).click();
+  await page.getByRole('button', { name: /Training context/ }).click();
+  await page.getByRole('button', { name: 'Add question', exact: true }).click();
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('Answer type').selectOption(type); await dialog.getByLabel('Question', { exact: true }).fill(question);
   await dialog.getByRole('button', { name: 'Add question', exact: true }).click();
@@ -86,7 +87,7 @@ test('real builder: manual edits, conditions, rules, persistence, publish, confl
       await page.screenshot({ path: `artifacts/redesign/builder-build-${width}.png`, style: 'nextjs-portal{display:none}', fullPage: true });
       await mode(page, 'Agent'); await expect(page.getByLabel('Message the Agent')).toBeVisible();
       await page.screenshot({ path: `artifacts/redesign/builder-agent-${width}.png`, style: 'nextjs-portal{display:none}', fullPage: true });
-      await mode(page, 'Preview'); await expect(page.getByRole('heading', { name: 'Preview your draft' })).toBeVisible();
+      await mode(page, 'Preview'); await expect(page.getByText('Preview · Nothing is submitted')).toBeVisible();
     }
     await page.setViewportSize({ width: 390, height: 844 }); await overview(page);
     const other = await context.newPage(); await other.goto(builderUrl); await other.setViewportSize({ width: 390, height: 844 });
