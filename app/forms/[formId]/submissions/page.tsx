@@ -5,7 +5,7 @@ import { getPoolDb } from "@/lib/db/node";
 import { listFormSubmissions } from "@/lib/clients/service";
 import { FormServiceError } from "@/lib/forms/errors";
 import { getWorkspaceForm } from "@/lib/forms/service";
-import { StatusBadge } from "@/components/product/ui";
+import { PageHeader, EmptyState, StatusBadge } from "@/components/product/ui";
 import { requireWorkspace } from "@/lib/workspace/session";
 
 export const dynamic = "force-dynamic";
@@ -28,45 +28,40 @@ export default async function FormSubmissionsPage({
   return (
     <AppShell businessName={profile.businessName}>
       <main className="mx-auto w-full max-w-7xl px-4 py-10">
-        <Link href={`/forms/${formId}/build`} className="text-sm text-muted">
-          Back to editor
+        <Link href={`/forms/${formId}/build`} className="page-back">
+          ← Back to editor
         </Link>
-        <h1 className="mt-3 font-display text-4xl tracking-tight">{loaded.form.name}</h1>
-        <p className="mt-2 text-muted">Responses</p>
-        <a className="mt-4 inline-flex rounded-full border border-line px-4 py-2 text-sm" href={`/api/forms/${formId}/submissions/export`}>
-          Export CSV
-        </a>
-        <nav className="mt-4 flex flex-wrap gap-2">
+        <PageHeader eyebrow="Form responses" title={loaded.form.name} description="Review the people who completed this onboarding." action={<a className="button" href={`/api/forms/${formId}/submissions/export`}>Export CSV</a>} />
+        <nav className="filter-tabs" aria-label="Filter responses">
           {[
             { id: "all", label: "All" },
             { id: "new", label: "New" },
-            { id: "needs_review", label: "Needs Review" },
+            { id: "needs_review", label: "Needs review" },
             { id: "reviewed", label: "Reviewed" },
           ].map((item) => (
             <Link
               key={item.id}
               href={item.id === "all" ? `/forms/${formId}/submissions` : `/forms/${formId}/submissions?status=${item.id}`}
-              className={`rounded-full px-4 py-2 text-sm ${(status ?? "all") === item.id ? "bg-accent text-surface" : "border border-line"}`}
+              aria-current={(filter ?? "all") === item.id ? "page" : undefined}
             >
               {item.label}
             </Link>
           ))}
         </nav>
         {loaded.rows.length === 0 ? (
-          <p className="mt-8 text-muted">No responses yet.</p>
+          <div className="mt-8"><EmptyState title={filter ? "No matching responses." : "No responses yet."} description={filter ? "Try another review status or view all responses." : "Responses appear here when clients complete your published onboarding."} href={filter ? `/forms/${formId}/submissions` : `/forms/${formId}/build`} action={filter ? "Clear filters" : "Open form"} /></div>
         ) : (
-          <ul className="mt-8 divide-y divide-line rounded-[1.5rem] border border-line bg-surface">
+          <ul className="data-list mt-8">
             {loaded.rows.map((row) => (
               <li key={row.submission.id}>
                 <Link
                   href={`/clients/${row.client.id}/submissions/${row.submission.id}`}
-                  className="block px-5 py-4 hover:bg-accent-soft/40"
+                  className="data-row"
                 >
-                  <p className="font-display text-lg tracking-tight">{row.client.fullName}</p>
+                  <div className="row-main"><strong>{row.client.fullName}</strong>
                   <p className="text-sm text-muted">
-                    Version {row.versionNumber} · {row.submission.submittedAt.toLocaleString()} ·{" "}
-                    <StatusBadge status={row.submission.reviewStatus} />
-                  </p>
+                    Version {row.versionNumber} · {row.submission.submittedAt.toLocaleString()}
+                  </p></div><StatusBadge status={row.submission.reviewStatus} />
                 </Link>
               </li>
             ))}
